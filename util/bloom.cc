@@ -71,6 +71,7 @@ class BloomFilterPolicy : public FilterPolicy {
 
     uint32_t h = BloomHash(key);
     const uint32_t delta = (h >> 17) | (h << 15);  // Rotate right 17 bits
+    // 计算k个哈希函数
     for (size_t j = 0; j < k; j++) {
       const uint32_t bitpos = h % bits;
       if ((array[bitpos / 8] & (1 << (bitpos % 8))) == 0) return false;

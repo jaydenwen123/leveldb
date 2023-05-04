@@ -10,6 +10,7 @@
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/options.h"
+
 #include "table/block_builder.h"
 #include "table/filter_block.h"
 #include "table/format.h"
@@ -91,6 +92,7 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   return Status::OK();
 }
 
+// 往SSTable中添加kv数据
 void TableBuilder::Add(const Slice& key, const Slice& value) {
   Rep* r = rep_;
   assert(!r->closed);
@@ -99,6 +101,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
 
+  // 添加索引
   if (r->pending_index_entry) {
     assert(r->data_block.empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
@@ -114,10 +117,12 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
 
   r->last_key.assign(key.data(), key.size());
   r->num_entries++;
+  //
   r->data_block.Add(key, value);
 
   const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
   if (estimated_block_size >= r->options.block_size) {
+    // 写入Block数据
     Flush();
   }
 }
@@ -145,6 +150,7 @@ void TableBuilder::WriteBlock(BlockBuilder* block, BlockHandle* handle) {
   //    crc: uint32
   assert(ok());
   Rep* r = rep_;
+  // 拿到Block的数据
   Slice raw = block->Finish();
 
   Slice block_contents;

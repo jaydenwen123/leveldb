@@ -48,6 +48,8 @@ Quick start:
 ```bash
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
+# 增加生成compile_commands.json的脚本
+cmake   -DCMAKE_EXPORT_COMPILE_COMMANDS=1  -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 ```
 
 ### Building for Windows

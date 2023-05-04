@@ -57,6 +57,7 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key);
 
+// 版本信息
 class Version {
  public:
   struct GetStats {
@@ -72,6 +73,7 @@ class Version {
   // Lookup the value for key.  If found, store it in *val and
   // return OK.  Else return a non-OK status.  Fills *stats.
   // REQUIRES: lock is not held
+  // 从Version中查找数据
   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
              GetStats* stats);
 
@@ -151,19 +153,23 @@ class Version {
   int refs_;          // Number of live refs to this version
 
   // List of files per level
+  // 每一层的文件信息
   std::vector<FileMetaData*> files_[config::kNumLevels];
 
   // Next file to compact based on seek stats.
+  // 根据查找统计信息记录的要压缩的文件和层级
   FileMetaData* file_to_compact_;
   int file_to_compact_level_;
 
   // Level that should be compacted next and its compaction score.
   // Score < 1 means compaction is not strictly needed.  These fields
   // are initialized by Finalize().
+  // 记录的要压缩的分数和level层级
   double compaction_score_;
   int compaction_level_;
 };
 
+// 多版本集合
 class VersionSet {
  public:
   VersionSet(const std::string& dbname, const Options* options,
@@ -176,6 +182,7 @@ class VersionSet {
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new
   // current version.  Will release *mu while actually writing to the file.
+  // 对当前版本应用*edit以形成一个新的描述符，该描述符既保存为持久状态，又作为新的当前版本安装。
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
   Status LogAndApply(VersionEdit* edit, port::Mutex* mu)
@@ -308,14 +315,17 @@ class VersionSet {
   WritableFile* descriptor_file_;
   log::Writer* descriptor_log_;
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
+  // 当前的version
   Version* current_;        // == dummy_versions_.prev_
 
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
+  // 每个层级的键，用于指示该层级下一次压实应该从哪个位置开始。可以是空字符串，也可以是一个有效的 InternalKey。
   std::string compact_pointer_[config::kNumLevels];
 };
 
 // A Compaction encapsulates information about a compaction.
+// 封装了和压缩相关的信息
 class Compaction {
  public:
   ~Compaction();
@@ -369,6 +379,7 @@ class Compaction {
   VersionEdit edit_;
 
   // Each compaction reads inputs from "level_" and "level_+1"
+  // 压缩集合，level、level+1两层
   std::vector<FileMetaData*> inputs_[2];  // The two sets of inputs
 
   // State used to check for number of overlapping grandparent files

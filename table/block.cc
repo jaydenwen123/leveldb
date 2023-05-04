@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "leveldb/comparator.h"
+
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/logging.h"
@@ -77,13 +78,19 @@ static inline const char* DecodeEntry(const char* p, const char* limit,
 class Block::Iter : public Iterator {
  private:
   const Comparator* const comparator_;
-  const char* const data_;       // underlying block contents
-  uint32_t const restarts_;      // Offset of restart array (list of fixed32)
+  // block的内容
+  const char* const data_;  // underlying block contents
+  // 重启点在data_中的位置
+  uint32_t const restarts_;  // Offset of restart array (list of fixed32)
+  // 重启点个数
   uint32_t const num_restarts_;  // Number of uint32_t entries in restart array
 
   // current_ is offset in data_ of current entry.  >= restarts_ if !Valid
+  // 当前entry的offset
   uint32_t current_;
+  // 当前entry对应的重启点index
   uint32_t restart_index_;  // Index of restart block in which current_ falls
+  // key和value
   std::string key_;
   Slice value_;
   Status status_;
@@ -161,9 +168,11 @@ class Block::Iter : public Iterator {
     } while (ParseNextKey() && NextEntryOffset() < original);
   }
 
+  // 在Block块内部定位
   void Seek(const Slice& target) override {
     // Binary search in restart array to find the last restart point
     // with a key < target
+    // 在重启点列表中二分查找，最近的重启点
     uint32_t left = 0;
     uint32_t right = num_restarts_ - 1;
     int current_key_compare = 0;
@@ -186,6 +195,7 @@ class Block::Iter : public Iterator {
 
     while (left < right) {
       uint32_t mid = (left + right + 1) / 2;
+      // 获取mid对应的重启点offset
       uint32_t region_offset = GetRestartPoint(mid);
       uint32_t shared, non_shared, value_length;
       const char* key_ptr =
@@ -195,6 +205,7 @@ class Block::Iter : public Iterator {
         CorruptionError();
         return;
       }
+      // 重启点都是非共享的，因此直接取
       Slice mid_key(key_ptr, non_shared);
       if (Compare(mid_key, target) < 0) {
         // Key at "mid" is smaller than "target".  Therefore all

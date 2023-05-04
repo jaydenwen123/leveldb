@@ -36,14 +36,6 @@ class MergingIterator : public Iterator {
     direction_ = kForward;
   }
 
-  void SeekToLast() override {
-    for (int i = 0; i < n_; i++) {
-      children_[i].SeekToLast();
-    }
-    FindLargest();
-    direction_ = kReverse;
-  }
-
   void Seek(const Slice& target) override {
     for (int i = 0; i < n_; i++) {
       children_[i].Seek(target);
@@ -77,6 +69,16 @@ class MergingIterator : public Iterator {
     current_->Next();
     FindSmallest();
   }
+
+  void SeekToLast() override {
+    for (int i = 0; i < n_; i++) {
+      children_[i].SeekToLast();
+    }
+    FindLargest();
+    direction_ = kReverse;
+  }
+
+  
 
   void Prev() override {
     assert(Valid());

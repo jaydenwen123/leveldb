@@ -216,8 +216,10 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                                                 const Slice&)) {
   Status s;
   Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
+  // 索引中查找
   iiter->Seek(k);
   if (iiter->Valid()) {
+    // 获取到的value,索引的值
     Slice handle_value = iiter->value();
     FilterBlockReader* filter = rep_->filter;
     BlockHandle handle;
@@ -225,6 +227,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
         !filter->KeyMayMatch(handle.offset(), k)) {
       // Not found
     } else {
+      // 读data block块
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {

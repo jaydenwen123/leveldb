@@ -5,27 +5,32 @@
 #ifndef STORAGE_LEVELDB_DB_VERSION_EDIT_H_
 #define STORAGE_LEVELDB_DB_VERSION_EDIT_H_
 
+#include "db/dbformat.h"
 #include <set>
 #include <utility>
 #include <vector>
-
-#include "db/dbformat.h"
 
 namespace leveldb {
 
 class VersionSet;
 
+// FileMetaData描述一个SSTable文件的元信息
 struct FileMetaData {
   FileMetaData() : refs(0), allowed_seeks(1 << 30), file_size(0) {}
 
   int refs;
+  // 统计允许seek失败的次数
   int allowed_seeks;  // Seeks allowed until compaction
+  // SSTable文件的序号
   uint64_t number;
-  uint64_t file_size;    // File size in bytes
+  // 文件大小
+  uint64_t file_size;  // File size in bytes
+  // 该SSTable文件中存储的范围[smallest,largest]
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
 };
 
+// 版本编辑信息
 class VersionEdit {
  public:
   VersionEdit() { Clear(); }
@@ -60,6 +65,7 @@ class VersionEdit {
   // Add the specified file at the specified number.
   // REQUIRES: This version has not been saved (see VersionSet::SaveTo)
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
+  // 添加文件
   void AddFile(int level, uint64_t file, uint64_t file_size,
                const InternalKey& smallest, const InternalKey& largest) {
     FileMetaData f;
@@ -71,11 +77,14 @@ class VersionEdit {
   }
 
   // Delete the specified "file" from the specified "level".
+  // 删除文件
   void RemoveFile(int level, uint64_t file) {
     deleted_files_.insert(std::make_pair(level, file));
   }
 
+  // 编码方法
   void EncodeTo(std::string* dst) const;
+  // 解码方法
   Status DecodeFrom(const Slice& src);
 
   std::string DebugString() const;
@@ -96,8 +105,11 @@ class VersionEdit {
   bool has_next_file_number_;
   bool has_last_sequence_;
 
+  //每一层的压缩指针，下一次压缩时从记录的位置开始
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
+  // 删除的文件列表
   DeletedFileSet deleted_files_;
+  // 新增的文件列表
   std::vector<std::pair<int, FileMetaData>> new_files_;
 };
 

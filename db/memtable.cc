@@ -67,6 +67,7 @@ class MemTableIterator : public Iterator {
   Status status() const override { return Status::OK(); }
 
  private:
+//  跳表的迭代器
   MemTable::Table::Iterator iter_;
   std::string tmp_;  // For passing to EncodeKey
 };
@@ -81,13 +82,16 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
   //  tag          : uint64((sequence << 8) | type)
   //  value_size   : varint32 of value.size()
   //  value bytes  : char[value.size()]
+  // 格式：|key_size+8|key|tag|value_size|value
   size_t key_size = key.size();
   size_t val_size = value.size();
   size_t internal_key_size = key_size + 8;
   const size_t encoded_len = VarintLength(internal_key_size) +
                              internal_key_size + VarintLength(val_size) +
                              val_size;
+  //  分配内存空间
   char* buf = arena_.Allocate(encoded_len);
+  // Varint 长度
   char* p = EncodeVarint32(buf, internal_key_size);
   std::memcpy(p, key.data(), key_size);
   p += key_size;
@@ -96,11 +100,14 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
   p = EncodeVarint32(p, val_size);
   std::memcpy(p, value.data(), val_size);
   assert(p + val_size == buf + encoded_len);
+  // 插入到跳表中
   table_.Insert(buf);
 }
 
+// 从MemTable中获取key对应的数据
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
   Slice memkey = key.memtable_key();
+  // 构建跳表的迭代器
   Table::Iterator iter(&table_);
   iter.Seek(memkey.data());
   if (iter.Valid()) {
@@ -113,6 +120,8 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
     // Check that it belongs to same user key.  We do not check the
     // sequence number since the Seek() call above should have skipped
     // all entries with overly large sequence numbers.
+    //  格式：|key_size+8|key|tag|value_size|value
+    // 找到的数据
     const char* entry = iter.key();
     uint32_t key_length;
     const char* key_ptr = GetVarint32Ptr(entry, entry + 5, &key_length);
@@ -122,6 +131,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
       const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);
       switch (static_cast<ValueType>(tag & 0xff)) {
         case kTypeValue: {
+          // 解析value
           Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
           value->assign(v.data(), v.size());
           return true;

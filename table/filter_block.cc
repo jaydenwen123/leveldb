@@ -5,6 +5,7 @@
 #include "table/filter_block.h"
 
 #include "leveldb/filter_policy.h"
+
 #include "util/coding.h"
 
 namespace leveldb {
@@ -37,13 +38,14 @@ Slice FilterBlockBuilder::Finish() {
     GenerateFilter();
   }
 
-  // Append array of per-filter offsets
   const uint32_t array_offset = result_.size();
+  // 追加每个过滤器的偏移量到result_中
   for (size_t i = 0; i < filter_offsets_.size(); i++) {
     PutFixed32(&result_, filter_offsets_[i]);
   }
-
+  // 存储过滤器的数据的大小
   PutFixed32(&result_, array_offset);
+  // 保存过滤器的基数
   result_.push_back(kFilterBaseLg);  // Save encoding parameter in result
   return Slice(result_);
 }
@@ -57,6 +59,7 @@ void FilterBlockBuilder::GenerateFilter() {
   }
 
   // Make list of keys from flattened key structure
+  // 将keys_中扁平化存储的key转换成vector
   start_.push_back(keys_.size());  // Simplify length computation
   tmp_keys_.resize(num_keys);
   for (size_t i = 0; i < num_keys; i++) {
@@ -66,6 +69,7 @@ void FilterBlockBuilder::GenerateFilter() {
   }
 
   // Generate filter for current set of keys and append to result_.
+  // 创建布隆过滤器
   filter_offsets_.push_back(result_.size());
   policy_->CreateFilter(&tmp_keys_[0], static_cast<int>(num_keys), &result_);
 
@@ -87,6 +91,7 @@ FilterBlockReader::FilterBlockReader(const FilterPolicy* policy,
   num_ = (n - 5 - last_word) / 4;
 }
 
+// 判断布隆过滤器中是否存在
 bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
   uint64_t index = block_offset >> base_lg_;
   if (index < num_) {

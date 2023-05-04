@@ -8,11 +8,6 @@
 #ifndef __Fuchsia__
 #include <sys/resource.h>
 #endif
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <sys/types.h>
-#include <unistd.h>
-
 #include <atomic>
 #include <cerrno>
 #include <cstddef>
@@ -24,13 +19,18 @@
 #include <queue>
 #include <set>
 #include <string>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
 #include <thread>
 #include <type_traits>
+#include <unistd.h>
 #include <utility>
 
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_posix_test_helper.h"
@@ -133,12 +133,14 @@ class Limiter {
 //
 // Instances of this class are thread-friendly but not thread-safe, as required
 // by the SequentialFile API.
+// 
 class PosixSequentialFile final : public SequentialFile {
  public:
   PosixSequentialFile(std::string filename, int fd)
       : fd_(fd), filename_(std::move(filename)) {}
   ~PosixSequentialFile() override { close(fd_); }
 
+  //从文件中读取n个字节数据，并存储到result中
   Status Read(size_t n, Slice* result, char* scratch) override {
     Status status;
     while (true) {
@@ -311,6 +313,7 @@ class PosixWritableFile final : public WritableFile {
     }
 
     // Small writes go to buffer, large writes are written directly.
+    // 小的写操作先写入buffer，而如果是大的写操作则直接写入文件中
     if (write_size < kWritableFileBufferSize) {
       std::memcpy(buf_, write_data, write_size);
       pos_ = write_size;
@@ -351,6 +354,7 @@ class PosixWritableFile final : public WritableFile {
   }
 
  private:
+  // 刷新缓冲区的数据到磁盘上
   Status FlushBuffer() {
     Status status = WriteUnbuffered(buf_, pos_);
     pos_ = 0;
@@ -359,6 +363,7 @@ class PosixWritableFile final : public WritableFile {
 
   Status WriteUnbuffered(const char* data, size_t size) {
     while (size > 0) {
+      // 调用系统调用write写入数据
       ssize_t write_result = ::write(fd_, data, size);
       if (write_result < 0) {
         if (errno == EINTR) {

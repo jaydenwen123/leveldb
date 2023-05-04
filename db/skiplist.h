@@ -52,6 +52,7 @@ class SkipList {
 
   // Insert key into the list.
   // REQUIRES: nothing that compares equal to key is currently in the list.
+  // 插入数据
   void Insert(const Key& key);
 
   // Returns true iff an entry that compares equal to key is in the list.
@@ -190,6 +191,13 @@ inline SkipList<Key, Comparator>::Iterator::Iterator(const SkipList* list) {
   node_ = nullptr;
 }
 
+
+
+template <typename Key, class Comparator>
+inline void SkipList<Key, Comparator>::Iterator::Seek(const Key& target) {
+  node_ = list_->FindGreaterOrEqual(target, nullptr);
+}
+
 template <typename Key, class Comparator>
 inline bool SkipList<Key, Comparator>::Iterator::Valid() const {
   return node_ != nullptr;
@@ -219,11 +227,6 @@ inline void SkipList<Key, Comparator>::Iterator::Prev() {
 }
 
 template <typename Key, class Comparator>
-inline void SkipList<Key, Comparator>::Iterator::Seek(const Key& target) {
-  node_ = list_->FindGreaterOrEqual(target, nullptr);
-}
-
-template <typename Key, class Comparator>
 inline void SkipList<Key, Comparator>::Iterator::SeekToFirst() {
   node_ = list_->head_->Next(0);
 }
@@ -236,47 +239,7 @@ inline void SkipList<Key, Comparator>::Iterator::SeekToLast() {
   }
 }
 
-template <typename Key, class Comparator>
-int SkipList<Key, Comparator>::RandomHeight() {
-  // Increase height with probability 1 in kBranching
-  static const unsigned int kBranching = 4;
-  int height = 1;
-  while (height < kMaxHeight && rnd_.OneIn(kBranching)) {
-    height++;
-  }
-  assert(height > 0);
-  assert(height <= kMaxHeight);
-  return height;
-}
 
-template <typename Key, class Comparator>
-bool SkipList<Key, Comparator>::KeyIsAfterNode(const Key& key, Node* n) const {
-  // null n is considered infinite
-  return (n != nullptr) && (compare_(n->key, key) < 0);
-}
-
-template <typename Key, class Comparator>
-typename SkipList<Key, Comparator>::Node*
-SkipList<Key, Comparator>::FindGreaterOrEqual(const Key& key,
-                                              Node** prev) const {
-  Node* x = head_;
-  int level = GetMaxHeight() - 1;
-  while (true) {
-    Node* next = x->Next(level);
-    if (KeyIsAfterNode(key, next)) {
-      // Keep searching in this list
-      x = next;
-    } else {
-      if (prev != nullptr) prev[level] = x;
-      if (level == 0) {
-        return next;
-      } else {
-        // Switch to next list
-        level--;
-      }
-    }
-  }
-}
 
 template <typename Key, class Comparator>
 typename SkipList<Key, Comparator>::Node*
@@ -355,7 +318,7 @@ void SkipList<Key, Comparator>::Insert(const Key& key) {
     // keys.  In the latter case the reader will use the new node.
     max_height_.store(height, std::memory_order_relaxed);
   }
-
+// 插入
   x = NewNode(key, height);
   for (int i = 0; i < height; i++) {
     // NoBarrier_SetNext() suffices since we will add a barrier when
@@ -364,6 +327,52 @@ void SkipList<Key, Comparator>::Insert(const Key& key) {
     prev[i]->SetNext(i, x);
   }
 }
+
+
+template <typename Key, class Comparator>
+typename SkipList<Key, Comparator>::Node*
+SkipList<Key, Comparator>::FindGreaterOrEqual(const Key& key,
+                                              Node** prev) const {
+  Node* x = head_;
+  int level = GetMaxHeight() - 1;
+  while (true) {
+    Node* next = x->Next(level);
+    if (KeyIsAfterNode(key, next)) {
+      // Keep searching in this list
+      x = next;
+    } else {
+      if (prev != nullptr) prev[level] = x;
+      if (level == 0) {
+        return next;
+      } else {
+        // Switch to next list
+        level--;
+      }
+    }
+  }
+}
+
+template <typename Key, class Comparator>
+bool SkipList<Key, Comparator>::KeyIsAfterNode(const Key& key, Node* n) const {
+  // null n is considered infinite
+  return (n != nullptr) && (compare_(n->key, key) < 0);
+}
+
+
+template <typename Key, class Comparator>
+int SkipList<Key, Comparator>::RandomHeight() {
+  // Increase height with probability 1 in kBranching
+  static const unsigned int kBranching = 4;
+  int height = 1;
+  while (height < kMaxHeight && rnd_.OneIn(kBranching)) {
+    height++;
+  }
+  assert(height > 0);
+  assert(height <= kMaxHeight);
+  return height;
+}
+
+
 
 template <typename Key, class Comparator>
 bool SkipList<Key, Comparator>::Contains(const Key& key) const {

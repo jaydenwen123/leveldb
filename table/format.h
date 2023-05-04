@@ -20,9 +20,11 @@ struct ReadOptions;
 
 // BlockHandle is a pointer to the extent of a file that stores a data
 // block or a meta block.
+// BlockHandle是一个指向 data block 或者 meta block的文件范围指针
 class BlockHandle {
  public:
   // Maximum encoding length of a BlockHandle
+  // BlockHandle 最大的编码长度
   enum { kMaxEncodedLength = 10 + 10 };
 
   BlockHandle();
@@ -39,7 +41,9 @@ class BlockHandle {
   Status DecodeFrom(Slice* input);
 
  private:
+  //  偏移量
   uint64_t offset_;
+  // 长度/大小
   uint64_t size_;
 };
 

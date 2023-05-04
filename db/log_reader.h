@@ -5,9 +5,9 @@
 #ifndef STORAGE_LEVELDB_DB_LOG_READER_H_
 #define STORAGE_LEVELDB_DB_LOG_READER_H_
 
+#include "db/log_format.h"
 #include <cstdint>
 
-#include "db/log_format.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
 
@@ -40,6 +40,7 @@ class Reader {
   //
   // The Reader will start reading at the first record located at physical
   // position >= initial_offset within the file.
+  // 构造函数，从file中的initial_offset之后开始读取Record
   Reader(SequentialFile* file, Reporter* reporter, bool checksum,
          uint64_t initial_offset);
 
@@ -84,7 +85,7 @@ class Reader {
   // buffer_ must be updated to remove the dropped bytes prior to invocation.
   void ReportCorruption(uint64_t bytes, const char* reason);
   void ReportDrop(uint64_t bytes, const Status& reason);
-
+  // 顺序读取文件(WAL log文件)
   SequentialFile* const file_;
   Reporter* const reporter_;
   bool const checksum_;

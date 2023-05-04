@@ -5,16 +5,17 @@
 #ifndef STORAGE_LEVELDB_DB_DB_IMPL_H_
 #define STORAGE_LEVELDB_DB_DB_IMPL_H_
 
+#include "db/dbformat.h"
+#include "db/log_writer.h"
+#include "db/snapshot.h"
 #include <atomic>
 #include <deque>
 #include <set>
 #include <string>
 
-#include "db/dbformat.h"
-#include "db/log_writer.h"
-#include "db/snapshot.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 
@@ -77,6 +78,7 @@ class DBImpl : public DB {
   struct Writer;
 
   // Information for a manual compaction
+  // 手动压缩
   struct ManualCompaction {
     int level;
     bool done;
@@ -123,15 +125,20 @@ class DBImpl : public DB {
   // Errors are recorded in bg_error_.
   void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
+
   Status RecoverLogFile(uint64_t log_number, bool last_log, bool* save_manifest,
                         VersionEdit* edit, SequenceNumber* max_sequence)
+      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+
+  Status MakeRoomForWrite(bool force /* compact even if there is room? */)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status MakeRoomForWrite(bool force /* compact even if there is room? */)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
@@ -174,18 +181,24 @@ class DBImpl : public DB {
   port::Mutex mutex_;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
+  // MemTable结构
   MemTable* mem_;
+  // Immu MemTable结构
   MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
+
+  // WAL log结构
   WritableFile* logfile_;
   uint64_t logfile_number_ GUARDED_BY(mutex_);
   log::Writer* log_;
+
   uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
 
   // Queue of writers.
   std::deque<Writer*> writers_ GUARDED_BY(mutex_);
   WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
 
+  // 快照
   SnapshotList snapshots_ GUARDED_BY(mutex_);
 
   // Set of table files to protect from deletion because they are

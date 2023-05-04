@@ -8,33 +8,39 @@
 #include "db/filename.h"
 #include "db/table_cache.h"
 #include "db/version_edit.h"
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
 
 namespace leveldb {
 
+// 创建一个SSTable
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
   Status s;
   meta->file_size = 0;
   iter->SeekToFirst();
-
+  // 生成文件名称
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
     WritableFile* file;
+    // 打开一个顺序写文件
     s = env->NewWritableFile(fname, &file);
     if (!s.ok()) {
       return s;
     }
 
     TableBuilder* builder = new TableBuilder(options, file);
+     // 更新元信息中的smallest
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
+    // 遍历迭代器，数据逐条写入到builder中
     for (; iter->Valid(); iter->Next()) {
       key = iter->key();
       builder->Add(key, iter->value());
     }
+    // 更新元信息中的largest
     if (!key.empty()) {
       meta->largest.DecodeFrom(key);
     }

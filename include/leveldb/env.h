@@ -219,6 +219,7 @@ class LEVELDB_EXPORT Env {
 };
 
 // A file abstraction for reading sequentially through a file
+// 顺序读文件的抽象类
 class LEVELDB_EXPORT SequentialFile {
  public:
   SequentialFile() = default;
@@ -274,6 +275,8 @@ class LEVELDB_EXPORT RandomAccessFile {
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
 // at a time to the file.
+// WritableFile
+// 是顺序写文件的抽象结构。调用者可能会写入多个小碎片到文件中，因此该结构的实现必须提供缓冲区
 class LEVELDB_EXPORT WritableFile {
  public:
   WritableFile() = default;

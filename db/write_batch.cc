@@ -39,6 +39,7 @@ void WriteBatch::Clear() {
 
 size_t WriteBatch::ApproximateSize() const { return rep_.size(); }
 
+// 遍历WriteBatch中的每条kv数据，然后执行handler动作
 Status WriteBatch::Iterate(Handler* handler) const {
   Slice input(rep_);
   if (input.size() < kHeader) {
@@ -50,6 +51,7 @@ Status WriteBatch::Iterate(Handler* handler) const {
   int found = 0;
   while (!input.empty()) {
     found++;
+    // 获取每条数据的类型
     char tag = input[0];
     input.remove_prefix(1);
     switch (tag) {
@@ -100,6 +102,7 @@ void WriteBatch::Put(const Slice& key, const Slice& value) {
   rep_.push_back(static_cast<char>(kTypeValue));
   PutLengthPrefixedSlice(&rep_, key);
   PutLengthPrefixedSlice(&rep_, value);
+  // 0~8|count|type|ksize|key|vsize|value|
 }
 
 void WriteBatch::Delete(const Slice& key) {
